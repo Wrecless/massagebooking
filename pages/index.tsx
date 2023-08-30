@@ -35,8 +35,8 @@ export default function Home() {
     return (
         <div className="p-8">
             <h1 className="text-2xl mb-4">Booking Calendar</h1>
-            {selectedDate && <div className="text-xl mb-4">Selected Date: {selectedDate}/08/2023</div>}
-            <div className="grid grid-cols-7 gap-4">
+            <div className="Month_Selected text-xl flex justify-center pb-2">{currentMonth}/{currentYear}</div>
+            <div className="calendarMonth pb-8 grid grid-cols-7 gap-4">
                 {[...Array(daysInMonth)].map((_, i) => (
                     <div
                         key={i}
@@ -49,7 +49,8 @@ export default function Home() {
             </div>
             <div className="flex justify-between items-center mb-4">
                 <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded" onClick={() => changeMonth(-1)}>Previous Month</button>
-                <div className="text-xl">{currentMonth}/{currentYear}</div>
+                {selectedDate && <div className="Current_Date text-xl mb-4">Selected Date: {selectedDate}/08/2023</div>}
+
                 <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded" onClick={() => changeMonth(1)}>Next Month</button>
             </div>
             {selectedDate && (
