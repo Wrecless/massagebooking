@@ -1,81 +1,57 @@
 import { useState } from 'react';
+import Link from 'next/link';
 
 export default function Home() {
-    const [bookedSlots, setBookedSlots] = useState<{ date: number; time: string }[]>([]);
-    const [selectedDate, setSelectedDate] = useState<number | null>(null);
-    const [selectedTime, setSelectedTime] = useState<string | null>(null);
-    const [currentMonth, setCurrentMonth] = useState<number>(8); // Starting with August as an example
-    const [currentYear, setCurrentYear] = useState<number>(2023);
-
-
-    const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
-
-
-    const isSlotBooked = (day: number, time: string) => {
-        return bookedSlots.some(slot => slot.date === day && slot.time === time);
-    };
-
-    const changeMonth = (direction: number) => {
-        let newMonth = currentMonth + direction;
-        let newYear = currentYear;
-
-        if (newMonth > 12) {
-            newMonth = 1;
-            newYear++;
-        } else if (newMonth < 1) {
-            newMonth = 12;
-            newYear--;
-        }
-
-        setCurrentMonth(newMonth);
-        setCurrentYear(newYear);
-    };
-
+    const [menuVisible, setMenuVisible] = useState<boolean>(false);
 
     return (
-        <div className="p-8">
-            <h1 className="text-2xl mb-4">Booking Calendar</h1>
-            <div className="Month_Selected text-xl flex justify-center pb-2">{currentMonth}/{currentYear}</div>
-            <div className="calendarMonth pb-8 grid grid-cols-7 gap-4">
-                {[...Array(daysInMonth)].map((_, i) => (
-                    <div
-                        key={i}
-                        className="day p-4 border border-gray-300 text-center cursor-pointer hover:bg-gray-200"
-                        onClick={() => setSelectedDate(i + 1)}
-                    >
-                        {i + 1}
-                    </div>
-                ))}
+        <>
+            <div>
+                <h1 className="Title text-center font-semibold text-3xl">Welcome to Home Page</h1>
             </div>
-            <div className="flex justify-between items-center mb-4">
-                <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded" onClick={() => changeMonth(-1)}>Previous Month</button>
-                {selectedDate && <div className="Current_Date text-xl mb-4">Selected Date: {selectedDate}/08/2023</div>}
+            <div className="p-8 flex">
+                <div className="mr-8">
+                    <button className="p-2" onClick={() => setMenuVisible(!menuVisible)}>
+                        {/* SVG for the hamburger icon */}
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="h-6 w-6">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16m-7 6h7"></path>
+                        </svg>
+                    </button>
 
-                <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded" onClick={() => changeMonth(1)}>Next Month</button>
-            </div>
-            {selectedDate && (
-                <div className="mt-4">
-                    {['10 am', '1 pm', '3 pm'].map(time => (
-                        <button
-                            key={time}
-                            className={`mr-2 mt-2 px-4 py-2 bg-gray-300 hover:bg-gray-400 ${isSlotBooked(selectedDate, time) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                            disabled={isSlotBooked(selectedDate, time)}
-                            onClick={() => setSelectedTime(time)}
-                        >
-                            {time}
-                        </button>
-                    ))}
+                    {menuVisible && (
+                        <div className="mt-4 bg-gray-100 rounded p-4">
+                            <ul>
+                                <li className="mb-2">
+                                    <Link href="/" className="text-gray-700 hover:font-bold">
+                                        Home
+                                    </Link>
+                                </li>
+                                <li className="mb-2">
+                                    <Link href="/booking" className="text-gray-700 hover:font-bold">
+                                        Booking
+                                    </Link>
+                                </li>
+                                <li className="mb-2">
+                                    <Link href="/booking2" className="text-gray-700 hover:font-bold">
+                                        Booking2
+                                    </Link>
+                                </li>
+                                <li className="mb-2">
+                                    <Link href="#" className="text-gray-700 hover:font-bold">
+                                        Benefits
+                                    </Link>
+                                </li>
+                                <li>
+                                    <Link href="#" className="text-gray-700 hover:font-bold">
+                                        About Us
+                                    </Link>
+                                </li>
+                            </ul>
+                        </div>
+                    )}
                 </div>
-            )}
-            <button onClick={() => {
-                if (selectedDate && selectedTime) {
-                    setBookedSlots([...bookedSlots, { date: selectedDate, time: selectedTime }]);
-                    setSelectedDate(null);
-                    setSelectedTime(null);
-                }
-            }} className="mt-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-                Book Selected Slot
-            </button>
-        </div>
+            </div>
+        </>
     );
 }
+
