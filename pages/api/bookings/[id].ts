@@ -1,76 +1,92 @@
-import { NextApiRequest, NextApiResponse } from 'next';
+import type { NextApiRequest, NextApiResponse } from 'next';
 
-// Mock database for demonstration purposes
-// In a real application, you would use a database like MongoDB, PostgreSQL, etc.
-let bookings = [
-  {
-    id: '1',
-    date: '2023-09-25T10:00:00Z',
-    userId: 'user1',
-    serviceId: 'service1',
-    therapistId: 'therapist1',
-    status: 'confirmed',
-    userName: 'John Doe',
-    userEmail: 'john@example.com',
-    userPhone: '123-456-7890',
-    serviceName: 'Swedish Massage',
-    serviceDuration: 60,
-    servicePrice: 80,
-    therapistName: 'Jane Smith'
-  }
-];
+import { BookingStatus, dataStore } from '@/lib/dataStore';
+
+type StoredBooking = ReturnType<typeof dataStore.listBookings>[number];
+
+const withDetails = (booking: StoredBooking) => {
+  const service = dataStore.getServiceById(booking.serviceId);
+  const therapist = dataStore.getTherapistById(booking.therapistId);
+
+  return {
+    ...booking,
+    serviceName: service?.name ?? 'Unknown Service',
+    serviceDuration: service?.duration ?? 60,
+    servicePrice: service?.price ?? 0,
+    therapistName: therapist?.name ?? 'Assigned Therapist',
+  };
+};
 
 export default function handler(req: NextApiRequest, res: NextApiResponse) {
   const { id } = req.query;
-  
-  // Find the booking by ID
-  const bookingIndex = bookings.findIndex(booking => booking.id === id);
-  
-  if (bookingIndex === -1) {
+
+  if (typeof id !== 'string') {
+    return res.status(400).json({ error: 'Invalid booking identifier' });
+  }
+
+  const booking = dataStore.getBookingById(id);
+
+  if (!booking) {
     return res.status(404).json({ error: 'Booking not found' });
   }
-  
+
   if (req.method === 'GET') {
-    // Return the booking
-    return res.status(200).json(bookings[bookingIndex]);
-  } else if (req.method === 'PUT' || req.method === 'PATCH') {
-    // Update the booking
-    const { status, date, serviceId, therapistId } = req.body;
-    
-    // Check if the new slot is already booked (if changing date/therapist)
-    if (date && date !== bookings[bookingIndex].date || 
-        therapistId && therapistId !== bookings[bookingIndex].therapistId) {
-      
-      const isSlotBooked = bookings.some(
-        booking => 
-          booking.id !== id && // Exclude current booking
-          booking.date === (date || bookings[bookingIndex].date) && 
-          booking.therapistId === (therapistId || bookings[bookingIndex].therapistId) &&
-          booking.status === 'confirmed'
-      );
-      
-      if (isSlotBooked) {
-        return res.status(409).json({ error: 'This slot is already booked' });
-      }
-    }
-    
-    // Update the booking
-    bookings[bookingIndex] = {
-      ...bookings[bookingIndex],
-      ...(status && { status }),
-      ...(date && { date }),
-      ...(serviceId && { serviceId }),
-      ...(therapistId && { therapistId })
-    };
-    
-    return res.status(200).json(bookings[bookingIndex]);
-  } else if (req.method === 'DELETE') {
-    // Delete the booking
-    bookings = bookings.filter(booking => booking.id !== id);
-    
-    return res.status(200).json({ message: 'Booking deleted successfully' });
-  } else {
-    res.setHeader('Allow', ['GET', 'PUT', 'PATCH', 'DELETE']);
-    return res.status(405).end(`Method ${req.method} Not Allowed`);
+    return res.status(200).json(withDetails(booking));
   }
+
+  if (req.method === 'PUT' || req.method === 'PATCH') {
+    const { status, date, serviceId, therapistId } = req.body as Partial<{
+      status: BookingStatus;
+      date: string;
+      serviceId: string;
+      therapistId: string;
+    }>;
+
+    const updates: Partial<Omit<StoredBooking, 'id'>> = {};
+
+    if (status) {
+      const validStatuses: BookingStatus[] = ['confirmed', 'cancelled', 'completed'];
+      if (!validStatuses.includes(status)) {
+        return res.status(400).json({ error: 'Invalid booking status' });
+      }
+      updates.status = status;
+    }
+
+    if (date) {
+      const parsedDate = new Date(date);
+      if (Number.isNaN(parsedDate.getTime())) {
+        return res.status(400).json({ error: 'Invalid date supplied' });
+      }
+      updates.date = parsedDate.toISOString();
+    }
+
+    if (serviceId) {
+      updates.serviceId = serviceId;
+    }
+
+    if (therapistId) {
+      updates.therapistId = therapistId;
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ error: 'No updates supplied' });
+    }
+
+    try {
+      const updated = dataStore.updateBooking(id, updates);
+      return res.status(200).json(withDetails(updated));
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Unable to update booking';
+      const statusCode = message.includes('available') ? 409 : 400;
+      return res.status(statusCode).json({ error: message });
+    }
+  }
+
+  if (req.method === 'DELETE') {
+    dataStore.deleteBooking(id);
+    return res.status(200).json({ message: 'Booking deleted successfully' });
+  }
+
+  res.setHeader('Allow', ['GET', 'PUT', 'PATCH', 'DELETE']);
+  return res.status(405).end(`Method ${req.method} Not Allowed`);
 }
