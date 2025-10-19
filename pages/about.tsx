@@ -139,7 +139,7 @@ export default function About() {
               </div>
               <h3 className="text-xl font-semibold mb-2">Client-Centered</h3>
               <p className="text-gray-600">
-                We put our clients' needs first, customizing each massage to address their specific concerns and preferences.
+                We put our clients’ needs first, customizing each massage to address their specific concerns and preferences.
               </p>
             </div>
             
@@ -165,7 +165,7 @@ export default function About() {
               </div>
               <h3 className="text-xl font-semibold mb-2">Convenience</h3>
               <p className="text-gray-600">
-                We make booking appointments easy and convenient, respecting our clients' time and schedules.
+                We make booking appointments easy and convenient, respecting our clients’ time and schedules.
               </p>
             </div>
           </div>

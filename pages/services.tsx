@@ -201,7 +201,7 @@ export default function Services() {
             <div className="bg-white p-6 rounded-lg shadow-md">
               <h3 className="text-xl font-semibold mb-2">What should I wear during a massage?</h3>
               <p className="text-gray-600">
-                You'll be properly draped during the session. Undress to your comfort level. Many clients prefer to remove most clothing, 
+                You’ll be properly draped during the session. Undress to your comfort level. Many clients prefer to remove most clothing,
                 but you can keep underwear on if you prefer. The therapist will leave the room while you undress and get on the table.
               </p>
             </div>
@@ -209,8 +209,8 @@ export default function Services() {
             <div className="bg-white p-6 rounded-lg shadow-md">
               <h3 className="text-xl font-semibold mb-2">How do I choose the right massage type?</h3>
               <p className="text-gray-600">
-                Consider your goals: relaxation, pain relief, or stress reduction. Swedish massage is great for beginners and relaxation. 
-                Deep tissue is better for chronic pain. If you're unsure, our therapists can help recommend the best option for your needs.
+                Consider your goals: relaxation, pain relief, or stress reduction. Swedish massage is great for beginners and relaxation.
+                Deep tissue is better for chronic pain. If you’re unsure, our therapists can help recommend the best option for your needs.
               </p>
             </div>
           </div>

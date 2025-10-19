@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { useRouter } from 'next/router';
@@ -19,9 +19,19 @@ interface Therapist {
   image: string;
 }
 
-interface TimeSlot {
-  time: Date;
-  available: boolean;
+interface BookingResponse {
+  id: string;
+  date: string;
+  userName: string;
+  userEmail: string;
+  userPhone?: string;
+  serviceId: string;
+  therapistId: string;
+  status: string;
+  serviceName: string;
+  serviceDuration: number;
+  servicePrice: number;
+  therapistName: string;
 }
 
 export default function BookingNew() {
@@ -43,7 +53,17 @@ export default function BookingNew() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [bookingConfirmed, setBookingConfirmed] = useState<boolean>(false);
-  const [bookingId, setBookingId] = useState<string | null>(null);
+  const [bookingDetails, setBookingDetails] = useState<BookingResponse | null>(null);
+
+  const selectedServiceDetails = useMemo(
+    () => services.find((service) => service.id === selectedService) ?? null,
+    [services, selectedService]
+  );
+
+  const selectedTherapistDetails = useMemo(
+    () => therapists.find((therapist) => therapist.id === selectedTherapist) ?? null,
+    [therapists, selectedTherapist]
+  );
 
   // Fetch services and therapists on component mount
   useEffect(() => {
@@ -67,25 +87,22 @@ export default function BookingNew() {
     fetchData();
   }, []);
 
-  // Fetch available slots when date or therapist changes
-  useEffect(() => {
-    if (selectedDate && selectedTherapist) {
-      fetchAvailableSlots();
-    }
-  }, [selectedDate, selectedTherapist]);
-
-  const fetchAvailableSlots = async () => {
+  const fetchAvailableSlots = useCallback(async () => {
     setIsLoading(true);
     try {
+      if (!selectedService || !selectedTherapist) {
+        return;
+      }
+
       const dateString = selectedDate.toISOString().split('T')[0];
       const response = await fetch(
-        `/api/bookings/available-slots?date=${dateString}&therapistId=${selectedTherapist}`
+        `/api/bookings/available-slots?date=${dateString}&therapistId=${selectedTherapist}&serviceId=${selectedService}`
       );
-      
+
       if (!response.ok) {
         throw new Error('Failed to fetch available slots');
       }
-      
+
       const data = await response.json();
       setAvailableSlots(data.availableSlots);
       setError(null);
@@ -95,7 +112,21 @@ export default function BookingNew() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [selectedDate, selectedService, selectedTherapist]);
+
+  // Fetch available slots when date or therapist changes
+  useEffect(() => {
+    if (selectedService && selectedTherapist) {
+      fetchAvailableSlots();
+    } else {
+      setAvailableSlots([]);
+      setError(null);
+    }
+  }, [fetchAvailableSlots, selectedService, selectedTherapist]);
+
+  useEffect(() => {
+    setSelectedTime(null);
+  }, [selectedDate, selectedTherapist, selectedService]);
 
   const handleBooking = async () => {
     if (!selectedService || !selectedTherapist || !selectedDate || !selectedTime) {
@@ -130,9 +161,10 @@ export default function BookingNew() {
         throw new Error(errorData.error || 'Failed to create booking');
       }
       
-      const bookingData = await response.json();
-      setBookingId(bookingData.id);
+      const bookingData: BookingResponse = await response.json();
+      setBookingDetails(bookingData);
       setBookingConfirmed(true);
+      setAvailableSlots((slots) => slots.filter((slot) => slot !== bookingData.date));
       setError(null);
     } catch (err: any) {
       console.error('Error creating booking:', err);
@@ -148,17 +180,18 @@ export default function BookingNew() {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  if (bookingConfirmed) {
+  if (bookingConfirmed && bookingDetails) {
+    const scheduledDate = new Date(bookingDetails.date);
     return (
       <div className="max-w-md mx-auto mt-10 p-6 bg-white rounded-lg shadow-xl">
         <h2 className="text-2xl font-bold text-green-600 mb-4">Booking Confirmed!</h2>
-        <p>Thank you for booking with us, {userInfo.name}.</p>
+        <p>Thank you for booking with us, {bookingDetails.userName}.</p>
         <p className="mt-2">
-          Your {services.find(s => s.id === selectedService)?.name} is scheduled for{' '}
-          {selectedDate.toLocaleDateString()} at {formatTime(selectedTime || '')}.
+          Your {bookingDetails.serviceName} is scheduled for{' '}
+          {scheduledDate.toLocaleDateString()} at {formatTime(bookingDetails.date)}.
         </p>
-        <p className="mt-4">A confirmation email has been sent to {userInfo.email}.</p>
-        <p className="mt-2">Your booking reference number is: {bookingId}</p>
+        <p className="mt-4">A confirmation email has been sent to {bookingDetails.userEmail}.</p>
+        <p className="mt-2">Your booking reference number is: {bookingDetails.id}</p>
         <button
           onClick={() => router.push('/')}
           className="mt-6 w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
@@ -184,7 +217,7 @@ export default function BookingNew() {
           <h2 className="text-xl font-semibold mb-4">1. Select Service</h2>
           <div className="space-y-2">
             {services.map(service => (
-              <div 
+              <div
                 key={service.id}
                 className={`p-4 border rounded cursor-pointer ${
                   selectedService === service.id ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
@@ -201,7 +234,7 @@ export default function BookingNew() {
           <h2 className="text-xl font-semibold mt-6 mb-4">2. Select Therapist</h2>
           <div className="space-y-2">
             {therapists.map(therapist => (
-              <div 
+              <div
                 key={therapist.id}
                 className={`p-4 border rounded cursor-pointer ${
                   selectedTherapist === therapist.id ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
@@ -261,7 +294,26 @@ export default function BookingNew() {
             className="w-full"
           />
           
-          <h3 className="font-medium mt-4 mb-2">Available Times</h3>
+          <div className="mt-4 rounded-lg border border-dashed border-gray-300 bg-gray-50 p-4 text-sm text-gray-600">
+            <p className="font-medium text-gray-700">Summary</p>
+            {selectedServiceDetails ? (
+              <p>
+                {selectedServiceDetails.name} &middot; {selectedServiceDetails.duration} minutes &middot; ${selectedServiceDetails.price}
+              </p>
+            ) : (
+              <p>Select a service to see duration and price.</p>
+            )}
+            {selectedTherapistDetails && (
+              <p>Therapist: {selectedTherapistDetails.name}</p>
+            )}
+            {selectedTime && (
+              <p>
+                Appointment: {selectedDate.toLocaleDateString()} at {formatTime(selectedTime)}
+              </p>
+            )}
+          </div>
+
+          <h3 className="font-medium mt-6 mb-2">Available Times</h3>
           {isLoading ? (
             <div className="text-center py-4">Loading available slots...</div>
           ) : availableSlots.length > 0 ? (
